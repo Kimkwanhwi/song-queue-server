@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>노래 큐 관리자</title>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        margin: 0;
+        padding: 16px;
+        background: #050510;
+        color: #f5f5f5;
+      }
+      h1 {
+        margin-top: 0;
+        margin-bottom: 12px;
+      }
+      .box {
+        margin-bottom: 16px;
+        padding: 12px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.03);
+      }
+      h2 {
+        margin: 0 0 8px 0;
+        font-size: 16px;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 4px;
+      }
+      input,
+      textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 6px 8px;
+        margin-bottom: 8px;
+        border-radius: 4px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(0, 0, 0, 0.6);
+        color: #f5f5f5;
+      }
+      button {
+        padding: 6px 10px;
+        border-radius: 4px;
+        border: none;
+        cursor: pointer;
+        font-size: 13px;
+        background: #ff2e63;
+        color: #fff;
+        margin-right: 4px;
+        margin-bottom: 4px;
+      }
+      button.secondary {
+        background: #444;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th,
+      td {
+        padding: 6px 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      th {
+        text-align: left;
+        font-weight: 600;
+        opacity: 0.8;
+      }
+      .small-btn {
+        font-size: 11px;
+        padding: 3px 6px;
+      }
+      #melomingList {
+        max-height: 220px;
+        overflow-y: auto;
+        padding: 6px 0;
+      }
+      .meloming-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+        gap: 8px;
+      }
+      .meloming-title {
+        font-size: 13px;
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>노래 큐 관리자</h1>
+
+    <div class="box">
+      <h2>현재 곡</h2>
+      <div id="currentDisplay">-</div>
+      <button id="btnRefresh" class="secondary">새로고침</button>
+    </div>
+
+    <div class="box">
+      <h2>대기열에 곡 직접 추가</h2>
+      <label>제목</label>
+      <input id="addTitle" />
+      <label>가수</label>
+      <input id="addArtist" />
+      <label>비고 (키, 주의사항 등)</label>
+      <textarea id="addMemo" rows="2"></textarea>
+      <button id="btnAdd">대기열에 추가</button>
+    </div>
+
+    <div class="box">
+      <h2>멜로밍 노래 목록에서 추가</h2>
+      <button id="btnLoadMeloming" class="secondary">
+        멜로밍 목록 불러오기
+      </button>
+      <div id="melomingList"></div>
+    </div>
+
+    <div class="box">
+      <h2>대기열</h2>
+      <button id="btnNext">다음 곡으로 넘기기</button>
+      <button id="btnReloadQueue" class="secondary">대기열 새로고침</button>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>제목</th>
+            <th>가수</th>
+            <th>비고</th>
+            <th>관리</th>
+          </tr>
+        </thead>
+        <tbody id="queueBody"></tbody>
+      </table>
+    </div>
+
+    <script>
+      const API_BASE = ""; // 같은 도메인이면 빈 문자열
+
+      let ADMIN_KEY = null;
+
+      function ensureAdminKey() {
+        let key = window.localStorage.getItem("ADMIN_KEY");
+        if (!key) {
+          key = window.prompt("관리자 키를 입력하세요");
+          if (!key) {
+            alert("관리자 키가 필요합니다.");
+            return;
+          }
+          window.localStorage.setItem("ADMIN_KEY", key);
+        }
+        ADMIN_KEY = key;
+      }
+
+      function adminFetch(url, options = {}) {
+        if (!ADMIN_KEY) ensureAdminKey();
+        const headers = options.headers || {};
+        headers["x-admin-key"] = ADMIN_KEY;
+        headers["Content-Type"] = "application/json";
+        return fetch(API_BASE + url, {
+          ...options,
+          headers,
+        }).then((res) => {
+          if (res.status === 401) {
+            window.localStorage.removeItem("ADMIN_KEY");
+            ADMIN_KEY = null;
+            alert("관리자 키가 잘못되었습니다. 다시 입력해주세요.");
+            throw new Error("Unauthorized");
+          }
+          return res;
+        });
+      }
+
+      async function loadQueue() {
+        const res = await fetch(API_BASE + "/api/queue");
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const currentDiv = document.getElementById("currentDisplay");
+        if (data.current) {
+          const c = data.current;
+          currentDiv.textContent =
+            c.title +
+            " - " +
+            c.artist +
+            (c.memo ? " (" + c.memo + ")" : "");
+        } else {
+          currentDiv.textContent = "-";
+        }
+
+        const tbody = document.getElementById("queueBody");
+        tbody.innerHTML = "";
+        (data.queue || []).forEach((item) => {
+          const tr = document.createElement("tr");
+
+          const tdIndex = document.createElement("td");
+          tdIndex.textContent = item.position;
+          tr.appendChild(tdIndex);
+
+          const tdTitle = document.createElement("td");
+          tdTitle.textContent = item.title;
+          tr.appendChild(tdTitle);
+
+          const tdArtist = document.createElement("td");
+          tdArtist.textContent = item.artist;
+          tr.appendChild(tdArtist);
+
+          const tdMemo = document.createElement("td");
+          tdMemo.textContent = item.memo || "";
+          tr.appendChild(tdMemo);
+
+          const tdActions = document.createElement("td");
+
+          const btnSetCurrent = document.createElement("button");
+          btnSetCurrent.textContent = "현재곡으로";
+          btnSetCurrent.className = "small-btn";
+          btnSetCurrent.onclick = async () => {
+            await adminFetch("/api/queue/current", {
+              method: "POST",
+              body: JSON.stringify({
+                songId: item.songId,
+                title: item.title,
+                artist: item.artist,
+                memo: item.memo,
+              }),
+            });
+            // 대기열에서 제거
+            await adminFetch(`/api/queue/${item.id}`, {
+              method: "DELETE",
+            });
+            await loadQueue();
+          };
+
+          const btnDelete = document.createElement("button");
+          btnDelete.textContent = "삭제";
+          btnDelete.className = "small-btn secondary";
+          btnDelete.onclick = async () => {
+            if (!confirm("이 곡을 대기열에서 삭제할까요?")) return;
+            await adminFetch(`/api/queue/${item.id}`, {
+              method: "DELETE",
+            });
+            await loadQueue();
+          };
+
+          tdActions.appendChild(btnSetCurrent);
+          tdActions.appendChild(btnDelete);
+          tr.appendChild(tdActions);
+
+          tbody.appendChild(tr);
+        });
+      }
+
+      async function addToQueue() {
+        const title = document.getElementById("addTitle").value.trim();
+        const artist = document.getElementById("addArtist").value.trim();
+        const memo = document.getElementById("addMemo").value.trim();
+
+        if (!title || !artist) {
+          alert("제목과 가수는 필수입니다.");
+          return;
+        }
+
+        await adminFetch("/api/queue/add", {
+          method: "POST",
+          body: JSON.stringify({ title, artist, memo }),
+        });
+
+        document.getElementById("addTitle").value = "";
+        document.getElementById("addArtist").value = "";
+        document.getElementById("addMemo").value = "";
+
+        await loadQueue();
+      }
+
+      async function moveNext() {
+        try {
+          await adminFetch("/api/queue/next", { method: "POST" });
+          await loadQueue();
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      // 멜로밍 목록 불러오기
+      async function loadMelomingSongs() {
+        const listDiv = document.getElementById("melomingList");
+        listDiv.textContent = "불러오는 중...";
+
+        const res = await fetch(API_BASE + "/api/meloming/songs");
+        if (!res.ok) {
+          listDiv.textContent = "멜로밍 API 호출 실패";
+          return;
+        }
+
+        const songs = await res.json();
+        listDiv.innerHTML = "";
+
+        songs.forEach((song) => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "meloming-item";
+
+          const span = document.createElement("span");
+          span.className = "meloming-title";
+          span.textContent = `${song.title} - ${song.artist}`;
+          wrapper.appendChild(span);
+
+          const btn = document.createElement("button");
+          btn.className = "small-btn";
+          btn.textContent = "큐에 추가";
+          btn.onclick = async () => {
+            await adminFetch("/api/queue/add", {
+              method: "POST",
+              body: JSON.stringify({
+                songId: song.id,
+                title: song.title,
+                artist: song.artist,
+                memo: song.memo || "",
+              }),
+            });
+            await loadQueue();
+          };
+          wrapper.appendChild(btn);
+
+          listDiv.appendChild(wrapper);
+        });
+      }
+
+      document.getElementById("btnAdd").onclick = addToQueue;
+      document.getElementById("btnRefresh").onclick = loadQueue;
+      document.getElementById("btnReloadQueue").onclick = loadQueue;
+      document.getElementById("btnNext").onclick = moveNext;
+      document.getElementById("btnLoadMeloming").onclick =
+        loadMelomingSongs;
+
+      // 초기 로드
+      loadQueue();
+    </script>
+  </body>
+</html>
