@@ -164,6 +164,7 @@
       <h2>현재 곡</h2>
       <div id="currentDisplay">-</div>
       <button id="btnRefresh" class="secondary">새로고침</button>
+      <button id="btnClearCurrent" class="secondary">현재곡 비우기</button>
     </div>
 
     <!-- 직접 추가 -->
@@ -429,6 +430,17 @@
         }
       }
 
+      // 🔸 현재곡 비우기
+      async function clearCurrent() {
+        if (!confirm("현재곡을 비우고 '-' 상태로 만들까요?")) return;
+
+        await adminFetch("/api/queue/current/clear", {
+          method: "POST",
+        });
+
+        await loadQueue();
+      }
+
       /* ---------- 멜로밍 헬퍼 ---------- */
 
       function getArtistName(song) {
@@ -475,7 +487,7 @@
           btn.dataset.genre = g;
           btn.onclick = () => {
             melomingFilterGenre = g;
-            buildGenreFilters(); // active 상태 갱신
+            buildGenreFilters();
             renderMelomingList();
           };
           container.appendChild(btn);
@@ -605,6 +617,7 @@
       document.getElementById("btnReloadQueue").onclick = loadQueue;
       document.getElementById("btnNext").onclick = moveNext;
       document.getElementById("btnLoadMeloming").onclick = loadMelomingSongs;
+      document.getElementById("btnClearCurrent").onclick = clearCurrent;
 
       document
         .getElementById("melomingSearch")
