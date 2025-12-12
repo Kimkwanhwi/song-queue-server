@@ -2,7 +2,7 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <title>Now Playing Overlay</title>
+    <title>Now Playing Queue Overlay</title>
     <style>
       html,
       body {
@@ -10,102 +10,189 @@
         padding: 0;
         background: transparent;
         overflow: hidden;
-        font-family: "Pretendard", system-ui, sans-serif;
+        font-family: "Pretendard", system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
       }
 
-      .overlay-wrap {
-        padding: 6px 12px;
-        border-radius: 999px;
-        background: rgba(0, 0, 0, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
+      .overlay-root {
+        padding: 8px 12px;
+        border-radius: 12px;
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.18);
         box-shadow:
-          0 0 12px rgba(0, 0, 0, 0.9),
-          0 0 18px rgba(255, 46, 99, 0.28);
+          0 0 16px rgba(0, 0, 0, 0.9),
+          0 0 20px rgba(255, 46, 99, 0.25);
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        color: #f8f8f8;
       }
 
-      .label {
+      .section-title {
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.16em;
-        opacity: 0.7;
+        opacity: 0.8;
+        margin-bottom: 2px;
       }
 
-      .now,
-      .next {
+      /* 현재 곡 영역 */
+      .current-block {
         display: flex;
         flex-direction: column;
+        gap: 2px;
       }
 
-      .now-title {
+      .current-line-main {
         font-size: 15px;
         font-weight: 700;
         text-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
       }
 
-      .now-artist {
+      .current-line-sub {
         font-size: 12px;
-        opacity: 0.85;
+        opacity: 0.9;
         text-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
       }
 
-      .next-title {
-        font-size: 12px;
-        opacity: 0.8;
-        text-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
+      /* 대기열 리스트 */
+      .queue-block {
+        margin-top: 4px;
       }
 
-      .divider {
-        width: 1px;
-        height: 24px;
-        background: rgba(255, 255, 255, 0.2);
+      .queue-list {
+        max-height: 260px;
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+
+      .queue-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        margin-bottom: 2px;
+        white-space: nowrap;
+      }
+
+      .queue-index {
+        min-width: 18px;
+        text-align: right;
+        opacity: 0.7;
+        font-size: 11px;
+      }
+
+      .queue-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .error-banner {
+        margin-top: 4px;
+        font-size: 10px;
+        opacity: 0.7;
+        color: #ffaaaa;
       }
     </style>
   </head>
   <body>
-    <div class="overlay-wrap">
-      <div class="label">NOW</div>
-      <div class="now">
-        <div class="now-title" id="nowTitle">-</div>
-        <div class="now-artist" id="nowArtist"></div>
+    <div class="overlay-root">
+      <!-- 현재 곡 -->
+      <div class="current-block">
+        <div class="section-title">NOW PLAYING</div>
+        <div class="current-line-main" id="nowArtist">-</div>
+        <div class="current-line-sub" id="nowTitle"></div>
       </div>
-      <div class="divider"></div>
-      <div class="label">NEXT</div>
-      <div class="next">
-        <div class="next-title" id="nextTitle">-</div>
+
+      <!-- 대기열 전체 -->
+      <div class="queue-block">
+        <div class="section-title">QUEUE</div>
+        <div class="queue-list" id="queueList"></div>
+        <div class="error-banner" id="errorBanner" style="display:none;">
+          연결이 끊어졌습니다. 재시도 중...
+        </div>
       </div>
     </div>
 
     <script>
-      async function fetchQueue() {
-        try {
-          const res = await fetch("/api/queue");
-          if (!res.ok) return;
-          const data = await res.json();
+      function renderFromSnapshot(data) {
+        const current = data.current;
+        const queue = Array.isArray(data.queue) ? data.queue : [];
 
-          const current = data.current;
-          const next = data.next;
+        // 현재 곡 표시
+        const nowArtistEl = document.getElementById("nowArtist");
+        const nowTitleEl = document.getElementById("nowTitle");
 
-          document.getElementById("nowTitle").textContent = current
-            ? current.title
-            : "-";
-          document.getElementById("nowArtist").textContent = current
-            ? current.artist +
-              (current.memo ? " (" + current.memo + ")" : "")
-            : "";
-
-          document.getElementById("nextTitle").textContent = next
-            ? `${next.title} - ${next.artist}`
-            : "-";
-        } catch (e) {
-          console.error(e);
+        if (current) {
+          nowArtistEl.textContent = current.artist || "-";
+          nowTitleEl.textContent = current.title || "";
+        } else {
+          nowArtistEl.textContent = "-";
+          nowTitleEl.textContent = "";
         }
+
+        // 대기열 표시
+        const listEl = document.getElementById("queueList");
+        listEl.innerHTML = "";
+
+        if (queue.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "queue-item";
+          const idxSpan = document.createElement("span");
+          idxSpan.className = "queue-index";
+          idxSpan.textContent = "-";
+          const textSpan = document.createElement("span");
+          textSpan.className = "queue-text";
+          textSpan.textContent = "대기열 없음";
+          empty.appendChild(idxSpan);
+          empty.appendChild(textSpan);
+          listEl.appendChild(empty);
+          return;
+        }
+
+        queue.forEach((item, idx) => {
+          const div = document.createElement("div");
+          div.className = "queue-item";
+
+          const idxSpan = document.createElement("span");
+          idxSpan.className = "queue-index";
+          idxSpan.textContent = (idx + 1).toString();
+
+          const textSpan = document.createElement("span");
+          textSpan.className = "queue-text";
+          textSpan.textContent = `${item.artist} - ${item.title}`;
+
+          div.appendChild(idxSpan);
+          div.appendChild(textSpan);
+          listEl.appendChild(div);
+        });
       }
 
-      fetchQueue();
-      setInterval(fetchQueue, 3000); // 3초마다 갱신
+      function setupSSE() {
+        const errorBanner = document.getElementById("errorBanner");
+        errorBanner.style.display = "none";
+
+        const es = new EventSource("/api/queue/stream");
+
+        es.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            renderFromSnapshot(data);
+          } catch (e) {
+            console.error("SSE parse error:", e);
+          }
+        };
+
+        es.onerror = () => {
+          // 연결 끊김 → 표시만 해두고, 잠시 후 재연결
+          errorBanner.style.display = "";
+          es.close();
+          setTimeout(setupSSE, 5000);
+        };
+      }
+
+      // 시작
+      setupSSE();
     </script>
   </body>
 </html>
