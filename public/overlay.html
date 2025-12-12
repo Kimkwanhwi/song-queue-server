@@ -13,6 +13,11 @@
         font-style: normal;
       }
 
+      :root {
+        /* 🔥 여기 숫자 하나로 전체 크기 조절 */
+        --component-px: 4.1px;
+      }
+
       html,
       body {
         margin: 0;
@@ -23,17 +28,18 @@
           "Segoe UI", sans-serif;
         font-weight: 700;
 
-        /* 화면 중앙 배치 */
         width: 100%;
         height: 100%;
+
         display: flex;
-        align-items: center;
-        justify-content: center;
+        justify-content: center;      /* 가로 가운데 */
+        align-items: flex-start;      /* 🔼 위쪽 정렬 */
+        padding-top: calc(10 * var(--component-px)); /* 위에서 살짝 띄우기 */
       }
 
       /* 전체 카드 */
       .overlay-root {
-        padding: 20px 24px;
+        padding: calc(4 * var(--component-px)) calc(4.5 * var(--component-px));
         border-radius: 12px;
         background: rgba(0, 0, 0, 0.9);
         border: 1px solid rgba(255, 255, 255, 0.3);
@@ -42,7 +48,7 @@
           0 0 28px rgba(255, 46, 99, 0.35);
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: calc(3 * var(--component-px));
         color: #ffffff;
 
         width: 900px;
@@ -50,21 +56,21 @@
       }
 
       .section-title {
-        font-size: 18px;
+        font-size: calc(7 * var(--component-px)); /* ≈ 28~29px */
         letter-spacing: 0.04em;
         opacity: 0.95;
-        margin-bottom: 6px;
+        margin-bottom: calc(1.4 * var(--component-px));
       }
 
       /* 현재곡 */
       .current-block {
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: calc(1.2 * var(--component-px));
       }
 
       .current-line {
-        font-size: 34px; /* 🔥 훨씬 크게 */
+        font-size: calc(18 * var(--component-px)); /* ≈ 74px */
         font-weight: 700;
         text-shadow:
           0 0 4px rgba(0, 0, 0, 1),
@@ -75,29 +81,29 @@
 
       /* 대기곡 리스트 */
       .queue-block {
-        margin-top: 2px;
+        margin-top: calc(0.5 * var(--component-px));
       }
 
       .queue-list {
-        max-height: 220px; /* 너무 길어지지 않도록 */
+        max-height: calc(54 * var(--component-px));
         overflow-y: auto;
-        padding-right: 8px;
+        padding-right: calc(2 * var(--component-px));
       }
 
       .queue-item {
         display: flex;
         align-items: flex-start;
-        gap: 10px;
-        font-size: 24px; /* 🔥 대기곡도 크게 */
-        margin-bottom: 6px;
+        gap: calc(2.4 * var(--component-px));
+        font-size: calc(12.6 * var(--component-px)); /* ≈ 52px */
+        margin-bottom: calc(1.4 * var(--component-px));
       }
 
       .queue-index {
-        min-width: 28px;
+        min-width: calc(6.8 * var(--component-px));
         text-align: right;
         opacity: 0.85;
-        font-size: 18px;
-        padding-top: 2px;
+        font-size: calc(9 * var(--component-px)); /* ≈ 37px */
+        padding-top: calc(0.6 * var(--component-px));
       }
 
       .queue-text {
@@ -109,8 +115,8 @@
       }
 
       .error-banner {
-        margin-top: 4px;
-        font-size: 12px;
+        margin-top: calc(1 * var(--component-px));
+        font-size: calc(5 * var(--component-px));
         opacity: 0.85;
         color: #ffbbbb;
       }
