@@ -4,16 +4,27 @@
     <meta charset="UTF-8" />
     <title>Now Playing Queue Overlay</title>
     <style>
+      /* 나눔스퀘어 Bold (나눔스퀘어AC 기반) */
+      @font-face {
+        font-family: "NanumSquare";
+        src: url("https://hangeul.pstatic.net/hangeul_static/webfont/NanumSquare/NanumSquare_acB.woff")
+          format("woff");
+        font-weight: 700;
+        font-style: normal;
+      }
+
       html,
       body {
         margin: 0;
         padding: 0;
         background: transparent;
         overflow: hidden;
-        font-family: "Pretendard", system-ui, -apple-system, BlinkMacSystemFont,
+        font-family: "NanumSquare", -apple-system, BlinkMacSystemFont,
           "Segoe UI", sans-serif;
+        font-weight: 700; /* 전체 기본 굵게 */
       }
 
+      /* 전체 오버레이 박스 */
       .overlay-root {
         padding: 10px 14px;
         border-radius: 12px;
@@ -29,11 +40,12 @@
         max-width: 420px; /* 옆으로 너무 안 길어지게 제한 */
       }
 
+      /* 섹션 제목 (현재곡 / 대기곡) */
       .section-title {
         font-size: 13px;
         text-transform: none;
         letter-spacing: 0.08em;
-        opacity: 0.8;
+        opacity: 0.85;
         margin-bottom: 2px;
       }
 
@@ -44,20 +56,12 @@
         gap: 3px;
       }
 
-      .current-line-main {
-        font-size: 22px; /* 가수 크게 */
+      .current-line {
+        font-size: 20px; /* 현재곡 가독성 있게 크게 */
         font-weight: 700;
         text-shadow: 0 0 4px rgba(0, 0, 0, 0.9);
-        line-height: 1.2;
-        white-space: normal; /* 길면 줄바꿈 */
-      }
-
-      .current-line-sub {
-        font-size: 16px; /* 제목도 크게 */
-        opacity: 0.9;
-        text-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
         line-height: 1.3;
-        white-space: normal;
+        white-space: normal; /* 길면 줄바꿈 */
       }
 
       /* 대기열 리스트 */
@@ -75,7 +79,7 @@
         display: flex;
         align-items: flex-start;
         gap: 6px;
-        font-size: 14px; /* 큐 글자도 키움 */
+        font-size: 14px; /* 큐 글자도 굵고 큼 */
         margin-bottom: 3px;
       }
 
@@ -90,14 +94,14 @@
       .queue-text {
         overflow: hidden;
         text-overflow: ellipsis;
-        white-space: normal; /* 한 줄로 너무 길지 않게 줄바꿈 허용 */
+        white-space: normal; /* 한 줄 제한 없이 줄바꿈 허용 */
         line-height: 1.3;
       }
 
       .error-banner {
         margin-top: 4px;
         font-size: 11px;
-        opacity: 0.75;
+        opacity: 0.8;
         color: #ffaaaa;
       }
     </style>
@@ -107,8 +111,7 @@
       <!-- 현재 곡 -->
       <div class="current-block">
         <div class="section-title">현재곡</div>
-        <div class="current-line-main" id="nowArtist">-</div>
-        <div class="current-line-sub" id="nowTitle"></div>
+        <div class="current-line" id="nowLine">-</div>
       </div>
 
       <!-- 대기곡 전체 -->
@@ -126,16 +129,22 @@
         const current = data.current;
         const queue = Array.isArray(data.queue) ? data.queue : [];
 
-        // 현재 곡 표시
-        const nowArtistEl = document.getElementById("nowArtist");
-        const nowTitleEl = document.getElementById("nowTitle");
-
+        // 현재 곡: "가수 - 제목" 한 줄
+        const nowLineEl = document.getElementById("nowLine");
         if (current) {
-          nowArtistEl.textContent = current.artist || "-";
-          nowTitleEl.textContent = current.title || "";
+          const artist = current.artist || "";
+          const title = current.title || "";
+          if (artist && title) {
+            nowLineEl.textContent = `${artist} - ${title}`;
+          } else if (artist) {
+            nowLineEl.textContent = artist;
+          } else if (title) {
+            nowLineEl.textContent = title;
+          } else {
+            nowLineEl.textContent = "-";
+          }
         } else {
-          nowArtistEl.textContent = "-";
-          nowTitleEl.textContent = "";
+          nowLineEl.textContent = "-";
         }
 
         // 대기곡 표시
