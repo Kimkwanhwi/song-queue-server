@@ -31,8 +31,7 @@
         font-size: 13px;
         margin-bottom: 4px;
       }
-      input,
-      textarea {
+      input {
         width: 100%;
         box-sizing: border-box;
         padding: 6px 8px;
@@ -94,6 +93,13 @@
         overflow: hidden;
         text-overflow: ellipsis;
       }
+      /* 드래그 시 시각 효과 */
+      #queueBody tr {
+        cursor: move;
+      }
+      #queueBody tr.dragging {
+        opacity: 0.5;
+      }
     </style>
   </head>
   <body>
@@ -107,12 +113,10 @@
 
     <div class="box">
       <h2>대기열에 곡 직접 추가</h2>
-      <label>제목</label>
-      <input id="addTitle" />
       <label>가수</label>
       <input id="addArtist" />
-      <label>비고 (키, 주의사항 등)</label>
-      <textarea id="addMemo" rows="2"></textarea>
+      <label>제목</label>
+      <input id="addTitle" />
       <button id="btnAdd">대기열에 추가</button>
     </div>
 
@@ -125,16 +129,15 @@
     </div>
 
     <div class="box">
-      <h2>대기열</h2>
+      <h2>대기열 (드래그로 순서 변경 가능)</h2>
       <button id="btnNext">다음 곡으로 넘기기</button>
       <button id="btnReloadQueue" class="secondary">대기열 새로고침</button>
       <table>
         <thead>
           <tr>
             <th>#</th>
-            <th>제목</th>
             <th>가수</th>
-            <th>비고</th>
+            <th>제목</th>
             <th>관리</th>
           </tr>
         </thead>
@@ -179,6 +182,60 @@
         });
       }
 
+      // ---------- 드래그 앤 드롭 핸들러 ----------
+
+      function handleDragStart(e) {
+        this.classList.add("dragging");
+      }
+
+      function handleDragEnd(e) {
+        this.classList.remove("dragging");
+      }
+
+      function handleDragOver(e) {
+        e.preventDefault();
+        const tbody = this.parentNode;
+        const dragging = tbody.querySelector(".dragging");
+        if (!dragging || dragging === this) return;
+
+        const rows = Array.from(tbody.querySelectorAll("tr"));
+        const draggingIndex = rows.indexOf(dragging);
+        const currentIndex = rows.indexOf(this);
+
+        if (draggingIndex < 0 || currentIndex < 0) return;
+
+        if (draggingIndex < currentIndex) {
+          tbody.insertBefore(dragging, this.nextSibling);
+        } else {
+          tbody.insertBefore(dragging, this);
+        }
+      }
+
+      function handleDrop(e) {
+        e.preventDefault();
+        const tbody = this.parentNode;
+        const rows = Array.from(tbody.querySelectorAll("tr"));
+        const items = rows.map((row, index) => ({
+          id: Number(row.dataset.id),
+          position: index + 1,
+        }));
+
+        adminFetch("/api/queue/reorder", {
+          method: "POST",
+          body: JSON.stringify({ items }),
+        }).catch(console.error);
+      }
+
+      function attachDragHandlers(tr) {
+        tr.draggable = true;
+        tr.addEventListener("dragstart", handleDragStart);
+        tr.addEventListener("dragend", handleDragEnd);
+        tr.addEventListener("dragover", handleDragOver);
+        tr.addEventListener("drop", handleDrop);
+      }
+
+      // ---------- 큐 로드 ----------
+
       async function loadQueue() {
         const res = await fetch(API_BASE + "/api/queue");
         if (!res.ok) return;
@@ -187,11 +244,8 @@
         const currentDiv = document.getElementById("currentDisplay");
         if (data.current) {
           const c = data.current;
-          currentDiv.textContent =
-            c.title +
-            " - " +
-            c.artist +
-            (c.memo ? " (" + c.memo + ")" : "");
+          // 가수 - 제목
+          currentDiv.textContent = `${c.artist} - ${c.title}`;
         } else {
           currentDiv.textContent = "-";
         }
@@ -200,27 +254,24 @@
         tbody.innerHTML = "";
         (data.queue || []).forEach((item) => {
           const tr = document.createElement("tr");
+          tr.dataset.id = item.id;
 
           const tdIndex = document.createElement("td");
           tdIndex.textContent = item.position;
           tr.appendChild(tdIndex);
 
-          const tdTitle = document.createElement("td");
-          tdTitle.textContent = item.title;
-          tr.appendChild(tdTitle);
-
           const tdArtist = document.createElement("td");
           tdArtist.textContent = item.artist;
           tr.appendChild(tdArtist);
 
-          const tdMemo = document.createElement("td");
-          tdMemo.textContent = item.memo || "";
-          tr.appendChild(tdMemo);
+          const tdTitle = document.createElement("td");
+          tdTitle.textContent = item.title;
+          tr.appendChild(tdTitle);
 
           const tdActions = document.createElement("td");
 
           const btnSetCurrent = document.createElement("button");
-          btnSetCurrent.textContent = "현재곡으로";
+          btnSetCurrent.textContent = "현재곡";
           btnSetCurrent.className = "small-btn";
           btnSetCurrent.onclick = async () => {
             await adminFetch("/api/queue/current", {
@@ -229,10 +280,8 @@
                 songId: item.songId,
                 title: item.title,
                 artist: item.artist,
-                memo: item.memo,
               }),
             });
-            // 대기열에서 제거
             await adminFetch(`/api/queue/${item.id}`, {
               method: "DELETE",
             });
@@ -254,28 +303,29 @@
           tdActions.appendChild(btnDelete);
           tr.appendChild(tdActions);
 
+          attachDragHandlers(tr);
           tbody.appendChild(tr);
         });
       }
 
+      // ---------- 곡 직접 추가 ----------
+
       async function addToQueue() {
         const title = document.getElementById("addTitle").value.trim();
         const artist = document.getElementById("addArtist").value.trim();
-        const memo = document.getElementById("addMemo").value.trim();
 
         if (!title || !artist) {
-          alert("제목과 가수는 필수입니다.");
+          alert("가수와 제목은 필수입니다.");
           return;
         }
 
         await adminFetch("/api/queue/add", {
           method: "POST",
-          body: JSON.stringify({ title, artist, memo }),
+          body: JSON.stringify({ title, artist }),
         });
 
         document.getElementById("addTitle").value = "";
         document.getElementById("addArtist").value = "";
-        document.getElementById("addMemo").value = "";
 
         await loadQueue();
       }
@@ -289,7 +339,8 @@
         }
       }
 
-      // 🔥 멜로밍 목록 불러오기 (응답 형태: { songs: [...] })
+      // ---------- 멜로밍 목록 불러오기 ----------
+
       async function loadMelomingSongs() {
         const listDiv = document.getElementById("melomingList");
         listDiv.textContent = "불러오는 중...";
@@ -302,7 +353,11 @@
           }
 
           const data = await res.json();
-          const songs = Array.isArray(data.songs) ? data.songs : [];
+          const songs = Array.isArray(data)
+            ? data
+            : Array.isArray(data.songs)
+            ? data.songs
+            : [];
 
           listDiv.innerHTML = "";
 
@@ -313,16 +368,18 @@
             const artistName =
               (song.artist && song.artist.name) ||
               song.artistName ||
+              song.artist ||
               "";
 
             const span = document.createElement("span");
             span.className = "meloming-title";
-            span.textContent = `${song.title} - ${artistName}`;
+            // 가수 - 제목
+            span.textContent = `${artistName} - ${song.title}`;
             wrapper.appendChild(span);
 
             const btn = document.createElement("button");
             btn.className = "small-btn";
-            btn.textContent = "큐에 추가";
+            btn.textContent = "+"; // 큐에 추가 대신 +
             btn.onclick = async () => {
               await adminFetch("/api/queue/add", {
                 method: "POST",
@@ -330,7 +387,6 @@
                   songId: song.id,
                   title: song.title,
                   artist: artistName,
-                  memo: "",
                 }),
               });
               await loadQueue();
@@ -349,6 +405,8 @@
         }
       }
 
+      // ---------- 이벤트 연결 & 초기 로드 ----------
+
       document.getElementById("btnAdd").onclick = addToQueue;
       document.getElementById("btnRefresh").onclick = loadQueue;
       document.getElementById("btnReloadQueue").onclick = loadQueue;
@@ -356,8 +414,9 @@
       document.getElementById("btnLoadMeloming").onclick =
         loadMelomingSongs;
 
-      // 초기 로드
+      // 초기 로드: 큐 + 멜로밍 목록 자동 불러오기
       loadQueue();
+      loadMelomingSongs();
     </script>
   </body>
 </html>
