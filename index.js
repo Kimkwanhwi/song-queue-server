@@ -102,7 +102,6 @@ function broadcastQueue() {
     try {
       res.write(payload);
     } catch (e) {
-      // 끊어진 클라이언트일 수 있음 → 무시
       console.error("SSE write error:", e);
     }
   }
@@ -217,6 +216,14 @@ app.post("/api/queue/current", checkAdmin, (req, res) => {
   res.json({ current: currentSong });
 });
 
+// POST /api/queue/current/clear
+// → 현재곡을 완전히 비우기 (null로)
+app.post("/api/queue/current/clear", checkAdmin, (req, res) => {
+  currentSong = null;
+  broadcastQueue();
+  res.json({ current: null });
+});
+
 // DELETE /api/queue/:id
 // → 대기열에서 특정 아이템 삭제
 app.delete("/api/queue/:id", checkAdmin, (req, res) => {
@@ -275,8 +282,8 @@ app.get("/api/meloming/songs", async (req, res) => {
   try {
     const channelId = process.env.MELOMING_CHANNEL_ID || "beberry";
 
-    const limit = 100;     // 한 번에 최대 100곡
-    const MAX_PAGES = 10;  // 안전장치: 최대 10페이지(=1000곡)까지만
+    const limit = 100; // 한 번에 최대 100곡
+    const MAX_PAGES = 10; // 안전장치: 최대 10페이지(=1000곡)까지만
 
     let page = 1;
     let allSongs = [];
@@ -286,7 +293,6 @@ app.get("/api/meloming/songs", async (req, res) => {
 
       const response = await fetch(url);
       if (!response.ok) {
-        // 디버깅용 로그
         try {
           const text = await response.text();
           console.error("Meloming fetch error:", response.status, text);
@@ -297,7 +303,6 @@ app.get("/api/meloming/songs", async (req, res) => {
       }
 
       const data = await response.json();
-      // data가 배열이거나, { songs: [...] } 형태일 수 있어서 둘 다 처리
       const batch = Array.isArray(data)
         ? data
         : Array.isArray(data.songs)
@@ -306,7 +311,6 @@ app.get("/api/meloming/songs", async (req, res) => {
 
       allSongs = allSongs.concat(batch);
 
-      // 이번 페이지에서 limit보다 적게 왔으면 마지막 페이지라고 보고 종료
       if (batch.length < limit) {
         break;
       }
@@ -314,7 +318,6 @@ app.get("/api/meloming/songs", async (req, res) => {
       page += 1;
     }
 
-    // admin.html에서 Array를 그대로 받아서 처리하므로 배열로 반환
     res.json(allSongs);
   } catch (e) {
     console.error(e);
@@ -336,7 +339,7 @@ app.get("/overlay/now-playing", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "overlay.html"));
 });
 
-// 선택: 루트 페이지 간단 안내 (없어도 됨)
+// 선택: 루트 페이지 간단 안내
 app.get("/", (req, res) => {
   res.send(
     '<h1>Song Queue Server</h1>' +
