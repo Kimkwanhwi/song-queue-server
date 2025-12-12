@@ -289,58 +289,65 @@
         }
       }
 
-      // 멜로밍 목록 불러오기
+      // 🔥 멜로밍 목록 불러오기 (응답 형태: { songs: [...] })
       async function loadMelomingSongs() {
         const listDiv = document.getElementById("melomingList");
         listDiv.textContent = "불러오는 중...";
 
-        const res = await fetch(API_BASE + "/api/meloming/songs");
-if (!res.ok) {
-  listDiv.textContent = "멜로밍 API 호출 실패";
-  return;
-}
+        try {
+          const res = await fetch(API_BASE + "/api/meloming/songs");
+          if (!res.ok) {
+            listDiv.textContent = "멜로밍 API 호출 실패";
+            return;
+          }
 
-// 멜로밍 응답은 { songs: [...] } 형태라서 이렇게 꺼내야 함
-const data = await res.json();
-const songs = Array.isArray(data.songs) ? data.songs : [];
+          const data = await res.json();
+          const songs = Array.isArray(data.songs) ? data.songs : [];
 
-listDiv.innerHTML = "";
+          listDiv.innerHTML = "";
 
-songs.forEach((song) => {
-  const wrapper = document.createElement("div");
-  wrapper.className = "meloming-item";
+          songs.forEach((song) => {
+            const wrapper = document.createElement("div");
+            wrapper.className = "meloming-item";
 
-  // artist는 객체라서 .name 사용
-  const artistName =
-    (song.artist && song.artist.name) ||
-    song.artistName ||
-    "";
+            const artistName =
+              (song.artist && song.artist.name) ||
+              song.artistName ||
+              "";
 
-  const span = document.createElement("span");
-  span.className = "meloming-title";
-  span.textContent = `${song.title} - ${artistName}`;
-  wrapper.appendChild(span);
+            const span = document.createElement("span");
+            span.className = "meloming-title";
+            span.textContent = `${song.title} - ${artistName}`;
+            wrapper.appendChild(span);
 
-  const btn = document.createElement("button");
-  btn.className = "small-btn";
-  btn.textContent = "큐에 추가";
-  btn.onclick = async () => {
-    await adminFetch("/api/queue/add", {
-      method: "POST",
-      body: JSON.stringify({
-        songId: song.id,
-        title: song.title,
-        artist: artistName,
-        memo: "", // 멜로밍엔 메모가 없으니 기본값 빈 문자열
-      }),
-    });
-    await loadQueue();
-  };
-  wrapper.appendChild(btn);
+            const btn = document.createElement("button");
+            btn.className = "small-btn";
+            btn.textContent = "큐에 추가";
+            btn.onclick = async () => {
+              await adminFetch("/api/queue/add", {
+                method: "POST",
+                body: JSON.stringify({
+                  songId: song.id,
+                  title: song.title,
+                  artist: artistName,
+                  memo: "",
+                }),
+              });
+              await loadQueue();
+            };
+            wrapper.appendChild(btn);
 
-  listDiv.appendChild(wrapper);
-});
+            listDiv.appendChild(wrapper);
+          });
 
+          if (songs.length === 0) {
+            listDiv.textContent = "노래가 없습니다.";
+          }
+        } catch (e) {
+          console.error(e);
+          listDiv.textContent = "멜로밍 목록 로딩 중 오류 발생";
+        }
+      }
 
       document.getElementById("btnAdd").onclick = addToQueue;
       document.getElementById("btnRefresh").onclick = loadQueue;
