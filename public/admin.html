@@ -115,10 +115,39 @@
       /* 대기열 영역 고정 높이 + 드래그 스타일 */
       .queue-wrapper {
         max-height: 260px;
-        overflow-y: auto;
+        overflow-y: scroll; /* 항상 스크롤바 확보 → 폭 변화 방지 */
         border-radius: 6px;
         border: 1px solid rgba(255, 255, 255, 0.08);
       }
+
+      .queue-wrapper table {
+        table-layout: fixed; /* 열 폭 고정 */
+        width: 100%;
+      }
+
+      .queue-wrapper th:nth-child(1),
+      .queue-wrapper td:nth-child(1) {
+        width: 40px; /* # */
+      }
+      .queue-wrapper th:nth-child(4),
+      .queue-wrapper td:nth-child(4) {
+        width: 90px; /* 관리 */
+      }
+      .queue-wrapper th:nth-child(2),
+      .queue-wrapper td:nth-child(2) {
+        width: 25%; /* 가수 */
+      }
+      .queue-wrapper th:nth-child(3),
+      .queue-wrapper td:nth-child(3) {
+        width: 55%; /* 제목 */
+      }
+      .queue-wrapper td:nth-child(2),
+      .queue-wrapper td:nth-child(3) {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
       #queueBody tr {
         cursor: move;
       }
@@ -466,10 +495,7 @@
           filtered = filtered.filter((song) => {
             const artist = getArtistName(song).toLowerCase();
             const title = (song.title || "").toLowerCase();
-            return (
-              artist.includes(text) ||
-              title.includes(text)
-            );
+            return artist.includes(text) || title.includes(text);
           });
         }
 
@@ -578,8 +604,7 @@
       document.getElementById("btnRefresh").onclick = loadQueue;
       document.getElementById("btnReloadQueue").onclick = loadQueue;
       document.getElementById("btnNext").onclick = moveNext;
-      document.getElementById("btnLoadMeloming").onclick =
-        loadMelomingSongs;
+      document.getElementById("btnLoadMeloming").onclick = loadMelomingSongs;
 
       document
         .getElementById("melomingSearch")
