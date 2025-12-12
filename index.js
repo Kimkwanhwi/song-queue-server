@@ -14,11 +14,11 @@ const port = process.env.PORT || 3000;
 // ==============================
 
 // 현재 곡: 없으면 null
-// { songId: number|null, title: string, artist: string, memo: string }
+// { songId: number|null, title: string, artist: string }
 let currentSong = null;
 
 // 대기열: 배열
-// { id, songId, title, artist, memo, position }
+// { id, songId, title, artist, position }
 let queue = [];
 
 // 대기열 아이템 ID 자동 증가용
@@ -100,9 +100,9 @@ app.get("/api/queue", (req, res) => {
    ========================== */
 
 // POST /api/queue/add
-// body: { songId?, title, artist, memo? }
+// body: { songId?, title, artist }
 app.post("/api/queue/add", checkAdmin, (req, res) => {
-  const { songId, title, artist, memo } = req.body;
+  const { songId, title, artist } = req.body;
 
   if (!title || !artist) {
     return res
@@ -117,7 +117,6 @@ app.post("/api/queue/add", checkAdmin, (req, res) => {
     songId: songId ?? null,
     title,
     artist,
-    memo: memo ?? "",
     position,
   };
 
@@ -138,7 +137,6 @@ app.post("/api/queue/next", checkAdmin, (req, res) => {
     songId: nextItem.songId,
     title: nextItem.title,
     artist: nextItem.artist,
-    memo: nextItem.memo,
   };
 
   // position 재정렬
@@ -151,10 +149,10 @@ app.post("/api/queue/next", checkAdmin, (req, res) => {
 });
 
 // POST /api/queue/current
-// body: { songId?, title, artist, memo? }
+// body: { songId?, title, artist }
 // → 대기열과 상관없이 “지금 부르는 곡” 직접 지정
 app.post("/api/queue/current", checkAdmin, (req, res) => {
-  const { songId, title, artist, memo } = req.body;
+  const { songId, title, artist } = req.body;
 
   if (!title || !artist) {
     return res
@@ -166,7 +164,6 @@ app.post("/api/queue/current", checkAdmin, (req, res) => {
     songId: songId ?? null,
     title,
     artist,
-    memo: memo ?? "",
   };
 
   res.json({ current: currentSong });
@@ -193,8 +190,9 @@ app.delete("/api/queue/:id", checkAdmin, (req, res) => {
   res.json({ success: true });
 });
 
-// POST /api/queue/reorder  (선택: 드래그로 순서 바꾸고 싶을 때 사용)
+// POST /api/queue/reorder
 // body: { items: [{ id, position }, ...] }
+// → 드래그로 순서 바꾼 결과를 서버에 반영
 app.post("/api/queue/reorder", checkAdmin, (req, res) => {
   const { items } = req.body;
   if (!Array.isArray(items)) {
@@ -217,25 +215,57 @@ app.post("/api/queue/reorder", checkAdmin, (req, res) => {
 });
 
 /* ==========================
-   3. 멜로밍 API 프록시 (노래책)
+   3. 멜로밍 API 프록시 (노래책 전체)
    ========================== */
 
 const MELOMING_BASE = "https://api.meloming.com/v1";
 
-// GET /api/meloming/songs  → 멜로밍 노래책 프록시
+// GET /api/meloming/songs  → 멜로밍 노래책 "전체" 모아서 반환
 app.get("/api/meloming/songs", async (req, res) => {
   try {
     const channelId = process.env.MELOMING_CHANNEL_ID || "beberry";
 
-    const response = await fetch(
-      `${MELOMING_BASE}/songs/channel/${channelId}`
-    );
-    if (!response.ok) {
-      return res.status(500).json({ error: "Failed to fetch from Meloming" });
+    const limit = 100;     // 한 번에 최대 100곡
+    const MAX_PAGES = 10;  // 안전장치: 최대 10페이지(=1000곡)까지만
+
+    let page = 1;
+    let allSongs = [];
+
+    while (page <= MAX_PAGES) {
+      const url = `${MELOMING_BASE}/songs/channel/${channelId}?page=${page}&limit=${limit}&sortBy=title`;
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        // 디버깅용 로그
+        try {
+          const text = await response.text();
+          console.error("Meloming fetch error:", response.status, text);
+        } catch (e2) {
+          console.error("Meloming fetch error:", response.status);
+        }
+        return res.status(500).json({ error: "Failed to fetch from Meloming" });
+      }
+
+      const data = await response.json();
+      // data가 배열이거나, { songs: [...] } 형태일 수 있어서 둘 다 처리
+      const batch = Array.isArray(data)
+        ? data
+        : Array.isArray(data.songs)
+        ? data.songs
+        : [];
+
+      allSongs = allSongs.concat(batch);
+
+      // 이번 페이지에서 limit보다 적게 왔으면 마지막 페이지라고 보고 종료
+      if (batch.length < limit) {
+        break;
+      }
+
+      page += 1;
     }
 
-    const data = await response.json();
-    res.json(data);
+    // admin.html에서 Array를 그대로 받아서 처리하므로 배열로 반환
+    res.json(allSongs);
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Meloming proxy error" });
@@ -254,6 +284,15 @@ app.get("/admin", basicAuth, (req, res) => {
 // /overlay/now-playing → OBS 브라우저 소스
 app.get("/overlay/now-playing", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "overlay.html"));
+});
+
+// 선택: 루트 페이지 간단 안내 (없어도 됨)
+app.get("/", (req, res) => {
+  res.send(
+    '<h1>Song Queue Server</h1>' +
+      '<p><a href="/admin">관리자 페이지</a></p>' +
+      '<p><a href="/overlay/now-playing">오버레이</a></p>'
+  );
 });
 
 app.listen(port, () => {
