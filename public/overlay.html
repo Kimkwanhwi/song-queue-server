@@ -26,26 +26,26 @@
 
       /* 전체 오버레이 박스 */
       .overlay-root {
-        padding: 14px 18px;
+        padding: 18px 22px;
         border-radius: 12px;
-        background: rgba(0, 0, 0, 0.85); /* 더 진하게 */
+        background: rgba(0, 0, 0, 0.9); /* 거의 불투명하게 */
         border: 1px solid rgba(255, 255, 255, 0.25);
         box-shadow:
-          0 0 20px rgba(0, 0, 0, 0.9),
-          0 0 26px rgba(255, 46, 99, 0.3);
+          0 0 22px rgba(0, 0, 0, 0.95),
+          0 0 28px rgba(255, 46, 99, 0.3);
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 12px;
         color: #fdfdfd;
-        max-width: 440px;
+        max-width: 480px; /* 도전미션 카드 느낌으로 조금 넓게 */
       }
 
       /* 섹션 제목 (현재곡 / 대기곡) */
       .section-title {
-        font-size: 16px;
-        letter-spacing: 0.06em;
-        opacity: 0.9;
-        margin-bottom: 4px;
+        font-size: 18px;
+        letter-spacing: 0.04em;
+        opacity: 0.95;
+        margin-bottom: 6px;
       }
 
       /* 현재 곡 영역 */
@@ -56,11 +56,11 @@
       }
 
       .current-line {
-        font-size: 26px; /* 현재곡 크게 */
+        font-size: 30px; /* 현재곡 크게 */
         font-weight: 700;
         text-shadow:
           0 0 4px rgba(0, 0, 0, 1),
-          0 0 8px rgba(0, 0, 0, 0.9);
+          0 0 10px rgba(0, 0, 0, 0.9);
         line-height: 1.25;
         white-space: normal; /* 길면 줄바꿈 */
       }
@@ -71,25 +71,25 @@
       }
 
       .queue-list {
-        max-height: 260px;
+        max-height: 230px; /* 너무 길어지지 않게 살짝 줄임 */
         overflow-y: auto;
-        padding-right: 6px;
+        padding-right: 8px;
       }
 
       .queue-item {
         display: flex;
         align-items: flex-start;
-        gap: 8px;
-        font-size: 18px; /* 대기곡도 확실히 크게 */
-        margin-bottom: 4px;
+        gap: 10px;
+        font-size: 20px; /* 대기곡도 크게 */
+        margin-bottom: 5px;
       }
 
       .queue-index {
-        min-width: 24px;
+        min-width: 26px;
         text-align: right;
-        opacity: 0.8;
-        font-size: 14px;
-        padding-top: 1px;
+        opacity: 0.85;
+        font-size: 16px;
+        padding-top: 2px;
       }
 
       .queue-text {
