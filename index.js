@@ -24,6 +24,9 @@ let queue = [];
 // 대기열 아이템 ID 자동 증가용
 let nextQueueItemId = 1;
 
+// SSE 구독자 (오버레이 연결들)
+const sseClients = new Set();
+
 // ==============================
 
 const __filename = fileURLToPath(import.meta.url);
@@ -80,18 +83,60 @@ function basicAuth(req, res, next) {
 }
 
 /* ==========================
+   공용: 현재 상태 스냅샷 & SSE 브로드캐스트
+   ========================== */
+
+function getQueueSnapshot() {
+  const next = queue.length > 0 ? queue[0] : null;
+  return {
+    current: currentSong,
+    next,
+    queue,
+  };
+}
+
+function broadcastQueue() {
+  if (sseClients.size === 0) return;
+  const payload = `data: ${JSON.stringify(getQueueSnapshot())}\n\n`;
+  for (const res of sseClients) {
+    try {
+      res.write(payload);
+    } catch (e) {
+      // 끊어진 클라이언트일 수 있음 → 무시
+      console.error("SSE write error:", e);
+    }
+  }
+}
+
+/* ==========================
    1. 큐 조회 (OBS / 누구나)
    ========================== */
 
 // GET /api/queue
 // → { current: {...} | null, next: {...} | null, queue: [...] }
 app.get("/api/queue", (req, res) => {
-  const next = queue.length > 0 ? queue[0] : null;
+  res.json(getQueueSnapshot());
+});
 
-  res.json({
-    current: currentSong,
-    next,
-    queue,
+// GET /api/queue/stream (SSE)
+// → 오버레이가 여기에 EventSource로 붙어서 실시간 업데이트 받음
+app.get("/api/queue/stream", (req, res) => {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  });
+
+  // 재연결 간격 힌트
+  res.write("retry: 5000\n\n");
+
+  // 처음 접속 시 현재 상태 한 번 보내기
+  res.write(`data: ${JSON.stringify(getQueueSnapshot())}\n\n`);
+
+  sseClients.add(res);
+
+  req.on("close", () => {
+    sseClients.delete(res);
   });
 });
 
@@ -122,6 +167,7 @@ app.post("/api/queue/add", checkAdmin, (req, res) => {
 
   queue.push(item);
 
+  broadcastQueue();
   res.status(201).json(item);
 });
 
@@ -145,6 +191,7 @@ app.post("/api/queue/next", checkAdmin, (req, res) => {
     position: index + 1,
   }));
 
+  broadcastQueue();
   res.json({ current: currentSong });
 });
 
@@ -166,6 +213,7 @@ app.post("/api/queue/current", checkAdmin, (req, res) => {
     artist,
   };
 
+  broadcastQueue();
   res.json({ current: currentSong });
 });
 
@@ -187,6 +235,7 @@ app.delete("/api/queue/:id", checkAdmin, (req, res) => {
     position: idx + 1,
   }));
 
+  broadcastQueue();
   res.json({ success: true });
 });
 
@@ -211,6 +260,7 @@ app.post("/api/queue/reorder", checkAdmin, (req, res) => {
 
   queue.sort((a, b) => a.position - b.position);
 
+  broadcastQueue();
   res.json({ success: true });
 });
 
