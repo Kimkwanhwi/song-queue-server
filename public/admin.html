@@ -83,6 +83,42 @@
         border-radius: 6px;
         border: 1px solid rgba(255, 255, 255, 0.08);
       }
+
+      /* 🔒 멜로밍 테이블도 고정 폭으로 */
+      #melomingList table {
+        width: 100%;
+        table-layout: fixed;
+      }
+
+      #melomingList th:nth-child(1),
+      #melomingList td:nth-child(1) {
+        width: 40px; /* # */
+      }
+      #melomingList th:nth-child(5),
+      #melomingList td:nth-child(5) {
+        width: 60px; /* 추가 버튼 */
+      }
+      #melomingList th:nth-child(2),
+      #melomingList td:nth-child(2) {
+        width: 25%; /* 가수 */
+      }
+      #melomingList th:nth-child(3),
+      #melomingList td:nth-child(3) {
+        width: 45%; /* 제목 */
+      }
+      #melomingList th:nth-child(4),
+      #melomingList td:nth-child(4) {
+        width: 20%; /* 장르 */
+      }
+
+      #melomingList td:nth-child(2),
+      #melomingList td:nth-child(3),
+      #melomingList td:nth-child(4) {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
       .meloming-search-row {
         display: flex;
         align-items: center;
