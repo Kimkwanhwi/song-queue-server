@@ -295,43 +295,52 @@
         listDiv.textContent = "불러오는 중...";
 
         const res = await fetch(API_BASE + "/api/meloming/songs");
-        if (!res.ok) {
-          listDiv.textContent = "멜로밍 API 호출 실패";
-          return;
-        }
+if (!res.ok) {
+  listDiv.textContent = "멜로밍 API 호출 실패";
+  return;
+}
 
-        const songs = await res.json();
-        listDiv.innerHTML = "";
+// 멜로밍 응답은 { songs: [...] } 형태라서 이렇게 꺼내야 함
+const data = await res.json();
+const songs = Array.isArray(data.songs) ? data.songs : [];
 
-        songs.forEach((song) => {
-          const wrapper = document.createElement("div");
-          wrapper.className = "meloming-item";
+listDiv.innerHTML = "";
 
-          const span = document.createElement("span");
-          span.className = "meloming-title";
-          span.textContent = `${song.title} - ${song.artist}`;
-          wrapper.appendChild(span);
+songs.forEach((song) => {
+  const wrapper = document.createElement("div");
+  wrapper.className = "meloming-item";
 
-          const btn = document.createElement("button");
-          btn.className = "small-btn";
-          btn.textContent = "큐에 추가";
-          btn.onclick = async () => {
-            await adminFetch("/api/queue/add", {
-              method: "POST",
-              body: JSON.stringify({
-                songId: song.id,
-                title: song.title,
-                artist: song.artist,
-                memo: song.memo || "",
-              }),
-            });
-            await loadQueue();
-          };
-          wrapper.appendChild(btn);
+  // artist는 객체라서 .name 사용
+  const artistName =
+    (song.artist && song.artist.name) ||
+    song.artistName ||
+    "";
 
-          listDiv.appendChild(wrapper);
-        });
-      }
+  const span = document.createElement("span");
+  span.className = "meloming-title";
+  span.textContent = `${song.title} - ${artistName}`;
+  wrapper.appendChild(span);
+
+  const btn = document.createElement("button");
+  btn.className = "small-btn";
+  btn.textContent = "큐에 추가";
+  btn.onclick = async () => {
+    await adminFetch("/api/queue/add", {
+      method: "POST",
+      body: JSON.stringify({
+        songId: song.id,
+        title: song.title,
+        artist: artistName,
+        memo: "", // 멜로밍엔 메모가 없으니 기본값 빈 문자열
+      }),
+    });
+    await loadQueue();
+  };
+  wrapper.appendChild(btn);
+
+  listDiv.appendChild(wrapper);
+});
+
 
       document.getElementById("btnAdd").onclick = addToQueue;
       document.getElementById("btnRefresh").onclick = loadQueue;
