@@ -2,84 +2,93 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <title>노래 오버레이</title>
-    <link rel="stylesheet" href="/common.css" />
+    <title>Now Playing Queue Overlay</title>
     <link rel="stylesheet" href="/overlay.css" />
   </head>
   <body>
     <div class="overlay-root">
-      <div class="overlay-card">
-        <div class="overlay-section">
-          <div class="overlay-title">현재곡</div>
-          <div id="currentSong" class="overlay-current-text">-</div>
-        </div>
+      <!-- 현재 곡 -->
+      <div class="current-block">
+        <div class="section-title">현재곡</div>
+        <div class="current-line" id="nowLine">-</div>
+      </div>
 
-        <div class="overlay-section overlay-queue-section">
-          <div class="overlay-title">대기곡</div>
-          <ul id="queueList" class="overlay-queue-list"></ul>
+      <!-- 대기곡 전체 -->
+      <div class="queue-block">
+        <div class="section-title">대기곡</div>
+        <div class="queue-list" id="queueList"></div>
+        <div class="error-banner" id="errorBanner" style="display: none">
+          연결이 끊어졌습니다. 재시도 중...
         </div>
       </div>
     </div>
 
     <script>
-      const API_BASE = ""; // 같은 도메인이면 빈 문자열
+      function renderFromSnapshot(data) {
+        const current = data.current;
+        const queue = Array.isArray(data.queue) ? data.queue : [];
 
-      function renderOverlay(data) {
-        const currentEl = document.getElementById("currentSong");
-        const queueEl = document.getElementById("queueList");
-
-        if (data && data.current) {
-          currentEl.textContent = `${data.current.artist} - ${data.current.title}`;
+        // 현재곡: "가수 - 제목"
+        const nowLineEl = document.getElementById("nowLine");
+        if (current) {
+          const artist = current.artist || "";
+          const title = current.title || "";
+          if (artist && title) {
+            nowLineEl.textContent = `${artist} - ${title}`;
+          } else if (artist) {
+            nowLineEl.textContent = artist;
+          } else if (title) {
+            nowLineEl.textContent = title;
+          } else {
+            nowLineEl.textContent = "-";
+          }
         } else {
-          currentEl.textContent = "-";
+          nowLineEl.textContent = "-";
         }
 
-        queueEl.innerHTML = "";
-        (data.queue || [])
-          .slice(0, 3) // 최대 3곡 표시
-          .forEach((item) => {
-            const li = document.createElement("li");
-            li.className = "overlay-queue-item";
-            li.textContent = `${item.artist} - ${item.title}`;
-            queueEl.appendChild(li);
-          });
-      }
+        // 대기곡 (번호 없이 텍스트만)
+        const listEl = document.getElementById("queueList");
+        listEl.innerHTML = "";
 
-      function connectOverlayStream() {
-        try {
-          const es = new EventSource(API_BASE + "/api/queue/stream");
-          es.onmessage = (event) => {
-            try {
-              const data = JSON.parse(event.data);
-              renderOverlay(data);
-            } catch (e) {
-              console.error("overlay SSE parse error", e);
-            }
-          };
-          es.onerror = (err) => {
-            console.error("overlay SSE error", err);
-            es.close();
-            setTimeout(connectOverlayStream, 5000);
-          };
-        } catch (e) {
-          console.error("overlay SSE connect error", e);
+        if (queue.length === 0) {
+          const empty = document.createElement("div");
+          empty.className = "queue-item";
+          empty.textContent = "대기곡 없음";
+          listEl.appendChild(empty);
+          return;
         }
+
+        queue.forEach((item) => {
+          const div = document.createElement("div");
+          div.className = "queue-item";
+          div.textContent = `${item.artist} - ${item.title}`;
+          listEl.appendChild(div);
+        });
       }
 
-      // 혹시 SSE가 막힌 환경 대비 1회 로딩
-      async function loadOnce() {
-        try {
-          const res = await fetch(API_BASE + "/api/queue");
-          if (!res.ok) return;
-          const data = await res.json();
-          renderOverlay(data);
-        } catch (e) {
-          console.error(e);
-        }
+      function setupSSE() {
+        const errorBanner = document.getElementById("errorBanner");
+        errorBanner.style.display = "none";
+
+        const es = new EventSource("/api/queue/stream");
+
+        es.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            renderFromSnapshot(data);
+          } catch (e) {
+            console.error("SSE parse error:", e);
+          }
+        };
+
+        es.onerror = () => {
+          errorBanner.style.display = "";
+          es.close();
+          setTimeout(setupSSE, 5000);
+        };
       }
 
-      loadOnce();
-      connectOverlayStream();
+      setupSSE();
     </script>
   </body>
 </html>
