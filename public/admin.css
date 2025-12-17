@@ -105,66 +105,83 @@
   transform: translateY(-50%);
 }
 
-/* 카테고리별 색상 */
+/* 카테고리별 색상 – 멜로밍 관리 화면 기준으로 비슷하게 맞춤 */
+
 .cat-kpop {
   border-color: #ff4b4b;
-  color: #ff4b4b;
+  color: #ff4b4b; /* K-POP 빨강 */
 }
 .cat-jpop {
   border-color: #4285f4;
-  color: #4285f4;
+  color: #4285f4; /* J-POP 파랑 */
 }
 .cat-pop {
   border-color: #a142f4;
-  color: #a142f4;
+  color: #a142f4; /* POP 보라 */
 }
 .cat-original {
   border-color: #ff8b2f;
-  color: #ff8b2f;
+  color: #ff8b2f; /* 오리지널곡 주황 */
 }
 .cat-cover {
   border-color: #fbbc05;
-  color: #fbbc05;
+  color: #fbbc05; /* 커버 및 콘서트 곡 노랑 */
 }
 .cat-ballad {
   border-color: #f44336;
-  color: #f44336;
+  color: #f44336; /* 발라드 빨강 */
 }
 .cat-band {
-  border-color: #0f9d58;
-  color: #0f9d58;
+  border-color: #009688;
+  color: #009688; /* 밴드/락 청록 */
 }
 .cat-idol {
   border-color: #4caf50;
-  color: #4caf50;
+  color: #4caf50; /* 아이돌 연두 */
+}
+.cat-dance {
+  border-color: #7cb342;
+  color: #7cb342; /* 댄스 초록 */
 }
 .cat-hiphop {
   border-color: #7e57c2;
-  color: #7e57c2;
+  color: #7e57c2; /* 힙/힙합 보라 계열 */
 }
 .cat-indi {
   border-color: #80868b;
-  color: #80868b;
+  color: #80868b; /* 인디 회색 */
+}
+.cat-rnb {
+  border-color: #3f51b5;
+  color: #3f51b5; /* R&B/소울 남색 */
+}
+.cat-jazz {
+  border-color: #ffb300;
+  color: #ffb300; /* 재즈 노랑/주황 */
 }
 .cat-sageuk {
   border-color: #8d6e63;
-  color: #8d6e63;
+  color: #8d6e63; /* 사극풍 갈색 */
 }
 .cat-vocaloid {
-  border-color: #2962ff;
-  color: #2962ff;
+  border-color: #00bcd4;
+  color: #00bcd4; /* 보컬로이드 청록 */
 }
-.cat-ost {
+.cat-gameost {
+  border-color: #00acc1;
+  color: #00acc1; /* 게임&애니메이션 OST */
+}
+.cat-musical {
   border-color: #ef5350;
-  color: #ef5350;
+  color: #ef5350; /* 뮤지컬 붉은색 */
 }
 .cat-aegyo {
   border-color: #ec407a;
-  color: #ec407a;
+  color: #ec407a; /* 애교송 핑크 */
 }
 .cat-default {
   border-color: #aaaaaa;
-  color: #dddddd;
+  color: #dddddd; /* 기타 */
 }
 
 /* ===== 대기열 영역 + 드래그 ===== */
