@@ -3,287 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <title>노래 큐 관리자</title>
-    <style>
-      body {
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-          sans-serif;
-        margin: 0;
-        padding: 16px;
-        background: #050510;
-        color: #f5f5f5;
-      }
-      h1 {
-        margin-top: 0;
-        margin-bottom: 12px;
-      }
-      .box {
-        margin-bottom: 16px;
-        padding: 12px;
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.03);
-      }
-      h2 {
-        margin: 0 0 8px 0;
-        font-size: 16px;
-      }
-      label {
-        display: block;
-        font-size: 13px;
-        margin-bottom: 4px;
-      }
-      input {
-        width: 100%;
-        box-sizing: border-box;
-        padding: 6px 8px;
-        margin-bottom: 8px;
-        border-radius: 4px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        background: rgba(0, 0, 0, 0.6);
-        color: #f5f5f5;
-      }
-      button {
-        padding: 6px 10px;
-        border-radius: 4px;
-        border: none;
-        cursor: pointer;
-        font-size: 13px;
-        background: #ff2e63;
-        color: #fff;
-        margin-right: 4px;
-        margin-bottom: 4px;
-      }
-      button.secondary {
-        background: #444;
-      }
-      table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-      }
-      th,
-      td {
-        padding: 6px 8px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      }
-      th {
-        text-align: left;
-        font-weight: 600;
-        opacity: 0.8;
-      }
-      .small-btn {
-        font-size: 11px;
-        padding: 3px 6px;
-      }
-
-      /* 멜로밍 리스트 영역 */
-      #melomingList {
-        height: 260px;
-        max-height: 260px;
-        overflow-y: auto;
-        padding: 0;
-        border-radius: 6px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-      }
-
-      /* 멜로밍 테이블 고정 폭 */
-      #melomingList table {
-        width: 100%;
-        table-layout: fixed;
-      }
-
-      #melomingList th:nth-child(1),
-      #melomingList td:nth-child(1) {
-        width: 40px; /* # */
-      }
-      #melomingList th:nth-child(5),
-      #melomingList td:nth-child(5) {
-        width: 60px; /* 추가 버튼 */
-      }
-      #melomingList th:nth-child(2),
-      #melomingList td:nth-child(2) {
-        width: 25%; /* 가수 */
-      }
-      #melomingList th:nth-child(3),
-      #melomingList td:nth-child(3) {
-        width: 45%; /* 제목 */
-      }
-      #melomingList th:nth-child(4),
-      #melomingList td:nth-child(4) {
-        width: 20%; /* 카테고리 */
-      }
-
-      /* 가수 / 제목은 말줄임, 카테고리는 여러 줄 허용 */
-      #melomingList td:nth-child(2),
-      #melomingList td:nth-child(3) {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      #melomingList td:nth-child(4) {
-        white-space: normal;
-      }
-
-      .meloming-search-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        margin-bottom: 8px;
-      }
-      .meloming-search-row input {
-        flex: 1;
-        margin-bottom: 0;
-      }
-      .genre-filters {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px;
-      }
-      .genre-btn {
-        padding: 4px 8px;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        background: transparent;
-        font-size: 11px;
-        cursor: pointer;
-        color: #f5f5f5;
-      }
-      .genre-btn.active {
-        background: #7b5cff;
-        border-color: #7b5cff;
-      }
-
-      /* 카테고리 뱃지 기본 모양 */
-      .category-badge {
-        position: relative;
-        display: inline-block;
-        padding: 2px 8px 2px 16px; /* 점 공간 확보 */
-        margin-right: 4px;
-        margin-bottom: 2px;
-        border-radius: 999px;
-        border: 1px solid #999;
-        background: transparent;
-        color: #e0e0e0;
-        font-size: 11px;
-        line-height: 1.4;
-        white-space: nowrap;
-      }
-      .category-badge::before {
-        content: "";
-        position: absolute;
-        left: 6px;
-        top: 50%;
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: currentColor;
-        transform: translateY(-50%);
-      }
-
-      /* 카테고리별 색상 */
-      .cat-kpop {
-        border-color: #ff4b4b;
-        color: #ff4b4b; /* K-POP 빨강 */
-      }
-      .cat-jpop {
-        border-color: #4285f4;
-        color: #4285f4; /* J-POP 파랑 */
-      }
-      .cat-pop {
-        border-color: #a142f4;
-        color: #a142f4; /* POP 보라 */
-      }
-      .cat-original {
-        border-color: #ff8b2f;
-        color: #ff8b2f; /* 오리지널곡 주황 */
-      }
-      .cat-cover {
-        border-color: #fbbc05;
-        color: #fbbc05; /* 커버 및 콘서트 곡 노랑 */
-      }
-      .cat-ballad {
-        border-color: #f44336;
-        color: #f44336; /* 발라드 빨강 */
-      }
-      .cat-band {
-        border-color: #0f9d58;
-        color: #0f9d58; /* 밴드/락 초록 */
-      }
-      .cat-idol {
-        border-color: #4caf50;
-        color: #4caf50; /* 아이돌 연두 */
-      }
-      .cat-hiphop {
-        border-color: #7e57c2;
-        color: #7e57c2; /* 힙/힙합 보라 계열 */
-      }
-      .cat-indi {
-        border-color: #80868b;
-        color: #80868b; /* 인디 회색 */
-      }
-      .cat-sageuk {
-        border-color: #8d6e63;
-        color: #8d6e63; /* 사극풍 갈색 */
-      }
-      .cat-vocaloid {
-        border-color: #2962ff;
-        color: #2962ff; /* 보컬로이드 파랑 */
-      }
-      .cat-ost {
-        border-color: #ef5350;
-        color: #ef5350; /* 뮤지컬&게임OST 빨강계열 */
-      }
-      .cat-aegyo {
-        border-color: #ec407a;
-        color: #ec407a; /* 애교송 핑크 */
-      }
-      .cat-default {
-        border-color: #aaaaaa;
-        color: #dddddd; /* 기타 */
-      }
-
-      /* 대기열 영역 고정 높이 + 드래그 스타일 */
-      .queue-wrapper {
-        max-height: 260px;
-        overflow-y: scroll; /* 항상 스크롤바 확보 → 폭 변화 방지 */
-        border-radius: 6px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-      }
-
-      .queue-wrapper table {
-        table-layout: fixed; /* 열 폭 고정 */
-        width: 100%;
-      }
-
-      .queue-wrapper th:nth-child(1),
-      .queue-wrapper td:nth-child(1) {
-        width: 40px; /* # */
-      }
-      .queue-wrapper th:nth-child(4),
-      .queue-wrapper td:nth-child(4) {
-        width: 90px; /* 관리 */
-      }
-      .queue-wrapper th:nth-child(2),
-      .queue-wrapper td:nth-child(2) {
-        width: 25%; /* 가수 */
-      }
-      .queue-wrapper th:nth-child(3),
-      .queue-wrapper td:nth-child(3) {
-        width: 55%; /* 제목 */
-      }
-      .queue-wrapper td:nth-child(2),
-      .queue-wrapper td:nth-child(3) {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-
-      #queueBody tr {
-        cursor: move;
-      }
-      #queueBody tr.dragging {
-        opacity: 0.5;
-      }
-    </style>
+    <link rel="stylesheet" href="/common.css" />
+    <link rel="stylesheet" href="/admin.css" />
   </head>
   <body>
     <h1>노래 큐 관리자</h1>
@@ -362,15 +83,16 @@
 
     <script>
       const API_BASE = ""; // 같은 도메인이면 빈 문자열
-
       let ADMIN_KEY = null;
+      let queueEventSource = null;
 
-      // 멜로밍 목록 상태
+      // 멜로밍 상태
       let melomingSongs = [];
       let melomingFilterText = "";
       let melomingFilterGenre = "전체";
       let melomingGenres = [];
 
+      /* ===== 관리자 키 ===== */
       function ensureAdminKey() {
         let key = window.localStorage.getItem("ADMIN_KEY");
         if (!key) {
@@ -403,16 +125,14 @@
         });
       }
 
-      /* ---------- 드래그 앤 드롭 (대기열) ---------- */
+      /* ===== 대기열 드래그 ===== */
 
-      function handleDragStart(e) {
+      function handleDragStart() {
         this.classList.add("dragging");
       }
-
-      function handleDragEnd(e) {
+      function handleDragEnd() {
         this.classList.remove("dragging");
       }
-
       function handleDragOver(e) {
         e.preventDefault();
         const tbody = this.parentNode;
@@ -431,7 +151,6 @@
           tbody.insertBefore(dragging, this);
         }
       }
-
       function handleDrop(e) {
         e.preventDefault();
         const tbody = this.parentNode;
@@ -446,7 +165,6 @@
           body: JSON.stringify({ items }),
         }).catch(console.error);
       }
-
       function attachDragHandlers(tr) {
         tr.draggable = true;
         tr.addEventListener("dragstart", handleDragStart);
@@ -455,12 +173,10 @@
         tr.addEventListener("drop", handleDrop);
       }
 
-      /* ---------- 대기열 로드 ---------- */
+      /* ===== 큐 렌더링 (SSE/수동 공용) ===== */
 
-      async function loadQueue() {
-        const res = await fetch(API_BASE + "/api/queue");
-        if (!res.ok) return;
-        const data = await res.json();
+      function renderQueueState(data) {
+        if (!data) return;
 
         const currentDiv = document.getElementById("currentDisplay");
         if (data.current) {
@@ -505,7 +221,6 @@
             await adminFetch(`/api/queue/${item.id}`, {
               method: "DELETE",
             });
-            await loadQueue();
           };
 
           const btnDelete = document.createElement("button");
@@ -516,7 +231,6 @@
             await adminFetch(`/api/queue/${item.id}`, {
               method: "DELETE",
             });
-            await loadQueue();
           };
 
           tdActions.appendChild(btnSetCurrent);
@@ -528,7 +242,46 @@
         });
       }
 
-      /* ---------- 대기열 수동 추가 ---------- */
+      async function loadQueue() {
+        try {
+          const res = await fetch(API_BASE + "/api/queue");
+          if (!res.ok) return;
+          const data = await res.json();
+          renderQueueState(data);
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      /* ===== SSE로 실시간 구독 ===== */
+
+      function connectQueueStream() {
+        if (queueEventSource) {
+          queueEventSource.close();
+        }
+        try {
+          const es = new EventSource(API_BASE + "/api/queue/stream");
+          es.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              renderQueueState(data);
+            } catch (e) {
+              console.error("SSE parse error", e);
+            }
+          };
+          es.onerror = (err) => {
+            console.error("SSE error", err);
+            es.close();
+            queueEventSource = null;
+            setTimeout(connectQueueStream, 5000);
+          };
+          queueEventSource = es;
+        } catch (e) {
+          console.error("SSE connect error", e);
+        }
+      }
+
+      /* ===== 대기열 조작 ===== */
 
       async function addToQueue() {
         const title = document.getElementById("addTitle").value.trim();
@@ -546,31 +299,24 @@
 
         document.getElementById("addTitle").value = "";
         document.getElementById("addArtist").value = "";
-
-        await loadQueue();
       }
 
       async function moveNext() {
         try {
           await adminFetch("/api/queue/next", { method: "POST" });
-          await loadQueue();
         } catch (e) {
           console.error(e);
         }
       }
 
-      // 🔸 현재곡 비우기
       async function clearCurrent() {
         if (!confirm("현재곡을 비우고 '-' 상태로 만들까요?")) return;
-
         await adminFetch("/api/queue/current/clear", {
           method: "POST",
         });
-
-        await loadQueue();
       }
 
-      /* ---------- 멜로밍 헬퍼 ---------- */
+      /* ===== 멜로밍 헬퍼 ===== */
 
       function getArtistName(song) {
         return (
@@ -589,25 +335,49 @@
         return names;
       }
 
-      // 카테고리 이름에 따라 색상 클래스 매핑
+      // 여기서 멜로밍 카테고리 이름 → 색상 클래스 매핑
       function getCategoryClass(name) {
         const key = name.replace(/\s+/g, "").toLowerCase();
         if (key === "k-pop" || key === "kpop") return "cat-kpop";
         if (key === "j-pop" || key === "jpop") return "cat-jpop";
         if (key === "pop") return "cat-pop";
+
         if (key.includes("오리지널곡")) return "cat-original";
         if (key.includes("커버및콘서트곡")) return "cat-cover";
         if (key.includes("발라드")) return "cat-ballad";
-        if (key.includes("밴드/락") || key.includes("밴드락")) return "cat-band";
+        if (key.includes("밴드/락") || key.includes("밴드락"))
+          return "cat-band";
         if (key.includes("아이돌")) return "cat-idol";
-        if (key.includes("힙/힙합") || key.includes("힙힙합") || key.includes("힙합"))
+        if (key.includes("댄스")) return "cat-dance";
+
+        if (
+          key.includes("힙/힙합") ||
+          key.includes("힙힙합") ||
+          key.includes("힙합")
+        )
           return "cat-hiphop";
+
         if (key.includes("인디")) return "cat-indi";
+
+        if (key.includes("r&b/소울") || key.includes("r&b소울"))
+          return "cat-rnb";
+
+        if (key.includes("재즈")) return "cat-jazz";
+
         if (key.includes("사극풍")) return "cat-sageuk";
+
         if (key.includes("보컬로이드")) return "cat-vocaloid";
-        if (key.includes("뮤지컬&게임ost") || key.includes("뮤지컬&게임") || key.includes("ost"))
-          return "cat-ost";
+
+        if (
+          key.includes("게임&애니메이션ost") ||
+          key.includes("게임&애니메이션")
+        )
+          return "cat-gameost";
+
+        if (key.includes("뮤지컬")) return "cat-musical";
+
         if (key.includes("애교송")) return "cat-aegyo";
+
         return "cat-default";
       }
 
@@ -621,7 +391,6 @@
         });
 
         melomingGenres = Array.from(set).sort();
-
         const allGenres = ["전체", ...melomingGenres];
 
         allGenres.forEach((g) => {
@@ -713,7 +482,6 @@
                 artist: artistName,
               }),
             });
-            await loadQueue();
           };
           tdAdd.appendChild(btn);
           tr.appendChild(tdAdd);
@@ -722,13 +490,10 @@
         });
       }
 
-      /* ---------- 멜로밍 목록 불러오기 ---------- */
-
       async function loadMelomingSongs() {
         const listDiv = document.getElementById("melomingList");
         const tbody = document.getElementById("melomingBody");
         if (tbody) tbody.innerHTML = "";
-        listDiv.classList.add("loading");
 
         try {
           const res = await fetch(API_BASE + "/api/meloming/songs");
@@ -764,13 +529,10 @@
             tr.appendChild(td);
             tbody.appendChild(tr);
           }
-        } finally {
-          listDiv.classList.remove("loading");
         }
       }
 
-      /* ---------- 이벤트 연결 & 초기 로드 ---------- */
-
+      /* 초기 설정 */
       document.getElementById("btnAdd").onclick = addToQueue;
       document.getElementById("btnRefresh").onclick = loadQueue;
       document.getElementById("btnReloadQueue").onclick = loadQueue;
@@ -785,8 +547,9 @@
           renderMelomingList();
         });
 
-      // 초기 로드: 큐 + 멜로밍 목록
+      // 초기 로드
       loadQueue();
+      connectQueueStream();
       loadMelomingSongs();
     </script>
   </body>
