@@ -27,24 +27,24 @@
       <button id="btnAdd">대기열에 추가</button>
     </div>
 
-    <!-- 멜로밍 목록 -->
+    <!-- GitHub 노래책 목록 -->
     <div class="box">
-      <h2>멜로밍 노래 목록에서 추가</h2>
+      <h2>노래책 목록에서 추가</h2>
 
-      <div class="meloming-search-row">
+      <div class="songbook-search-row">
         <input
-          id="melomingSearch"
+          id="songbookSearch"
           placeholder="제목 / 가수 검색"
           autocomplete="off"
         />
-        <div id="melomingGenres" class="genre-filters"></div>
+        <div id="songbookGenres" class="genre-filters"></div>
       </div>
 
-      <button id="btnLoadMeloming" class="secondary">
-        멜로밍 목록 다시 불러오기
+      <button id="btnLoadSongbook" class="secondary">
+        노래책 목록 다시 불러오기
       </button>
 
-      <div id="melomingList">
+      <div id="songbookList">
         <table>
           <thead>
             <tr>
@@ -55,7 +55,7 @@
               <th>추가</th>
             </tr>
           </thead>
-          <tbody id="melomingBody"></tbody>
+          <tbody id="songbookBody"></tbody>
         </table>
       </div>
     </div>
@@ -86,11 +86,11 @@
       let ADMIN_KEY = null;
       let queueEventSource = null;
 
-      // 멜로밍 상태
-      let melomingSongs = [];
-      let melomingFilterText = "";
-      let melomingFilterGenre = "전체";
-      let melomingGenres = [];
+      // 노래책 상태
+      let songbookSongs = [];
+      let songbookFilterText = "";
+      let songbookFilterGenre = "전체";
+      let songbookGenres = [];
 
       /* ===== 관리자 키 ===== */
       function ensureAdminKey() {
@@ -316,7 +316,7 @@
         });
       }
 
-      /* ===== 멜로밍 헬퍼 ===== */
+      /* ===== 노래책 헬퍼 ===== */
 
       function getArtistName(song) {
         return (
@@ -328,6 +328,10 @@
       }
 
       function getCategoryNames(song) {
+        if (Array.isArray(song.categories)) {
+          return song.categories.filter(Boolean);
+        }
+
         const cats = song.songCategories || [];
         const names = cats
           .map((c) => (c.category && c.category.name) || "")
@@ -335,7 +339,7 @@
         return names;
       }
 
-      // 여기서 멜로밍 카테고리 이름 → 색상 클래스 매핑
+      // 노래책 카테고리 이름 → 색상 클래스 매핑
       function getCategoryClass(name) {
         const key = name.replace(/\s+/g, "").toLowerCase();
         if (key === "k-pop" || key === "kpop") return "cat-kpop";
@@ -382,41 +386,41 @@
       }
 
       function buildGenreFilters() {
-        const container = document.getElementById("melomingGenres");
+        const container = document.getElementById("songbookGenres");
         container.innerHTML = "";
 
         const set = new Set();
-        melomingSongs.forEach((song) => {
+        songbookSongs.forEach((song) => {
           getCategoryNames(song).forEach((name) => set.add(name));
         });
 
-        melomingGenres = Array.from(set).sort();
-        const allGenres = ["전체", ...melomingGenres];
+        songbookGenres = Array.from(set).sort();
+        const allGenres = ["전체", ...songbookGenres];
 
         allGenres.forEach((g) => {
           const btn = document.createElement("button");
           btn.type = "button";
           btn.className =
-            "genre-btn" + (g === melomingFilterGenre ? " active" : "");
+            "genre-btn" + (g === songbookFilterGenre ? " active" : "");
           btn.textContent = g;
           btn.dataset.genre = g;
           btn.onclick = () => {
-            melomingFilterGenre = g;
+            songbookFilterGenre = g;
             buildGenreFilters();
-            renderMelomingList();
+            renderSongbookList();
           };
           container.appendChild(btn);
         });
       }
 
-      function renderMelomingList() {
-        const tbody = document.getElementById("melomingBody");
+      function renderSongbookList() {
+        const tbody = document.getElementById("songbookBody");
         if (!tbody) return;
 
-        const text = melomingFilterText.trim().toLowerCase();
-        const genre = melomingFilterGenre;
+        const text = songbookFilterText.trim().toLowerCase();
+        const genre = songbookFilterGenre;
 
-        let filtered = melomingSongs.slice();
+        let filtered = songbookSongs.slice();
 
         if (text) {
           filtered = filtered.filter((song) => {
@@ -490,20 +494,20 @@
         });
       }
 
-      async function loadMelomingSongs() {
-        const listDiv = document.getElementById("melomingList");
-        const tbody = document.getElementById("melomingBody");
+      async function loadSongbookSongs() {
+        const listDiv = document.getElementById("songbookList");
+        const tbody = document.getElementById("songbookBody");
         if (tbody) tbody.innerHTML = "";
 
         try {
-          const res = await fetch(API_BASE + "/api/meloming/songs");
+          const res = await fetch(API_BASE + "/api/songbook/songs");
           if (!res.ok) {
-            console.error("멜로밍 API 에러:", res.status);
+            console.error("노래책 API 에러:", res.status);
             if (tbody) {
               const tr = document.createElement("tr");
               const td = document.createElement("td");
               td.colSpan = 5;
-              td.textContent = "멜로밍 API 호출 실패";
+              td.textContent = "노래책을 불러오지 못했습니다";
               tr.appendChild(td);
               tbody.appendChild(tr);
             }
@@ -511,21 +515,21 @@
           }
 
           const data = await res.json();
-          melomingSongs = Array.isArray(data)
+          songbookSongs = Array.isArray(data)
             ? data
             : Array.isArray(data.songs)
             ? data.songs
             : [];
 
           buildGenreFilters();
-          renderMelomingList();
+          renderSongbookList();
         } catch (e) {
           console.error(e);
           if (tbody) {
             const tr = document.createElement("tr");
             const td = document.createElement("td");
             td.colSpan = 5;
-            td.textContent = "멜로밍 목록 로딩 중 오류 발생";
+            td.textContent = "노래책 목록 로딩 중 오류 발생";
             tr.appendChild(td);
             tbody.appendChild(tr);
           }
@@ -537,20 +541,20 @@
       document.getElementById("btnRefresh").onclick = loadQueue;
       document.getElementById("btnReloadQueue").onclick = loadQueue;
       document.getElementById("btnNext").onclick = moveNext;
-      document.getElementById("btnLoadMeloming").onclick = loadMelomingSongs;
+      document.getElementById("btnLoadSongbook").onclick = loadSongbookSongs;
       document.getElementById("btnClearCurrent").onclick = clearCurrent;
 
       document
-        .getElementById("melomingSearch")
+        .getElementById("songbookSearch")
         .addEventListener("input", (e) => {
-          melomingFilterText = e.target.value;
-          renderMelomingList();
+          songbookFilterText = e.target.value;
+          renderSongbookList();
         });
 
       // 초기 로드
       loadQueue();
       connectQueueStream();
-      loadMelomingSongs();
+      loadSongbookSongs();
     </script>
   </body>
 </html>

@@ -14,7 +14,7 @@ const port = process.env.PORT || 3000;
 // ==============================
 
 // 현재 곡: 없으면 null
-// { songId: number|null, title: string, artist: string }
+// { songId: number|string|null, title: string, artist: string }
 let currentSong = null;
 
 // 대기열: 배열
@@ -272,56 +272,33 @@ app.post("/api/queue/reorder", checkAdmin, (req, res) => {
 });
 
 /* ==========================
-   3. 멜로밍 API 프록시 (노래책 전체)
+   3. GitHub 노래책 JSON 프록시
    ========================== */
 
-const MELOMING_BASE = "https://api.meloming.com/v1";
+const SONGBOOK_URL =
+  process.env.SONGBOOK_URL ||
+  "https://raw.githubusercontent.com/hakkutakku/beberry-songbook/main/data/songs.json";
 
-// GET /api/meloming/songs  → 멜로밍 노래책 "전체" 모아서 반환
-app.get("/api/meloming/songs", async (req, res) => {
+// GET /api/songbook/songs → GitHub 노래책의 songs 배열 반환
+app.get("/api/songbook/songs", async (req, res) => {
   try {
-    const channelId = process.env.MELOMING_CHANNEL_ID || "beberry";
-
-    const limit = 100; // 한 번에 최대 100곡
-    const MAX_PAGES = 10; // 안전장치: 최대 10페이지(=1000곡)까지만
-
-    let page = 1;
-    let allSongs = [];
-
-    while (page <= MAX_PAGES) {
-      const url = `${MELOMING_BASE}/songs/channel/${channelId}?page=${page}&limit=${limit}&sortBy=title`;
-
-      const response = await fetch(url);
-      if (!response.ok) {
-        try {
-          const text = await response.text();
-          console.error("Meloming fetch error:", response.status, text);
-        } catch (e2) {
-          console.error("Meloming fetch error:", response.status);
-        }
-        return res.status(500).json({ error: "Failed to fetch from Meloming" });
-      }
-
-      const data = await response.json();
-      const batch = Array.isArray(data)
-        ? data
-        : Array.isArray(data.songs)
-        ? data.songs
-        : [];
-
-      allSongs = allSongs.concat(batch);
-
-      if (batch.length < limit) {
-        break;
-      }
-
-      page += 1;
+    const response = await fetch(SONGBOOK_URL);
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      console.error("Songbook fetch error:", response.status, text);
+      return res.status(502).json({ error: "Failed to fetch songbook" });
     }
 
-    res.json(allSongs);
+    const data = await response.json();
+    if (!data || !Array.isArray(data.songs)) {
+      console.error("Songbook data has an invalid format");
+      return res.status(502).json({ error: "Invalid songbook format" });
+    }
+
+    res.json(data.songs);
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: "Meloming proxy error" });
+    res.status(502).json({ error: "Songbook proxy error" });
   }
 });
 

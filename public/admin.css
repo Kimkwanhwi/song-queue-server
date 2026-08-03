@@ -1,6 +1,6 @@
-/* ===== 멜로밍 리스트 영역 ===== */
+/* ===== 노래책 리스트 영역 ===== */
 
-#melomingList {
+#songbookList {
   height: 260px;
   max-height: 260px;
   overflow-y: auto;
@@ -10,51 +10,51 @@
 }
 
 /* 테이블 고정 폭 */
-#melomingList table {
+#songbookList table {
   width: 100%;
   table-layout: fixed;
 }
 
-#melomingList th:nth-child(1),
-#melomingList td:nth-child(1) {
+#songbookList th:nth-child(1),
+#songbookList td:nth-child(1) {
   width: 40px; /* # */
 }
-#melomingList th:nth-child(5),
-#melomingList td:nth-child(5) {
+#songbookList th:nth-child(5),
+#songbookList td:nth-child(5) {
   width: 60px; /* 추가 버튼 */
 }
-#melomingList th:nth-child(2),
-#melomingList td:nth-child(2) {
+#songbookList th:nth-child(2),
+#songbookList td:nth-child(2) {
   width: 25%; /* 가수 */
 }
-#melomingList th:nth-child(3),
-#melomingList td:nth-child(3) {
+#songbookList th:nth-child(3),
+#songbookList td:nth-child(3) {
   width: 45%; /* 제목 */
 }
-#melomingList th:nth-child(4),
-#melomingList td:nth-child(4) {
+#songbookList th:nth-child(4),
+#songbookList td:nth-child(4) {
   width: 20%; /* 카테고리 */
 }
 
 /* 가수 / 제목은 말줄임, 카테고리는 여러 줄 허용 */
-#melomingList td:nth-child(2),
-#melomingList td:nth-child(3) {
+#songbookList td:nth-child(2),
+#songbookList td:nth-child(3) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-#melomingList td:nth-child(4) {
+#songbookList td:nth-child(4) {
   white-space: normal;
 }
 
 /* 검색 + 장르 필터 */
-.meloming-search-row {
+.songbook-search-row {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 8px;
 }
-.meloming-search-row input {
+.songbook-search-row input {
   flex: 1;
   margin-bottom: 0;
 }
@@ -105,7 +105,7 @@
   transform: translateY(-50%);
 }
 
-/* 카테고리별 색상 – 멜로밍 관리 화면 기준으로 비슷하게 맞춤 */
+/* 카테고리별 색상 */
 
 .cat-kpop {
   border-color: #ff4b4b;
