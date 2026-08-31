@@ -1,0 +1,95 @@
+name: UptimeRobot sleep schedule
+
+on:
+  schedule:
+    # GitHub Actions cron은 UTC 기준입니다.
+    # 21:00 UTC = 다음 날 06:00 KST: 모니터 중지
+    - cron: "0 21 * * *"
+    # 08:45 UTC = 같은 날 17:45 KST: 18시 사용 전 모니터 재개
+    - cron: "45 8 * * *"
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "UptimeRobot monitor action"
+        required: true
+        type: choice
+        options:
+          - start
+          - pause
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uptimerobot-sleep-schedule
+  cancel-in-progress: false
+
+jobs:
+  update-monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      EVENT_NAME: ${{ github.event_name }}
+      SCHEDULE: ${{ github.event.schedule }}
+      MANUAL_ACTION: ${{ inputs.action }}
+      UPTIMEROBOT_API_KEY: ${{ secrets.UPTIMEROBOT_API_KEY }}
+      UPTIMEROBOT_MONITOR_ID: ${{ secrets.UPTIMEROBOT_MONITOR_ID }}
+
+    steps:
+      - name: Pause or start the UptimeRobot monitor
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${UPTIMEROBOT_API_KEY}" ]]; then
+            echo "::error::Repository secret UPTIMEROBOT_API_KEY is not configured."
+            exit 1
+          fi
+
+          if [[ ! "${UPTIMEROBOT_MONITOR_ID}" =~ ^[0-9]+$ ]]; then
+            echo "::error::Repository secret UPTIMEROBOT_MONITOR_ID is missing or is not numeric."
+            exit 1
+          fi
+
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            monitor_action="${MANUAL_ACTION}"
+          elif [[ "${SCHEDULE}" == "0 21 * * *" ]]; then
+            monitor_action="pause"
+          elif [[ "${SCHEDULE}" == "45 8 * * *" ]]; then
+            monitor_action="start"
+          else
+            echo "::error::Unable to determine the UptimeRobot monitor action."
+            exit 1
+          fi
+
+          response_file="$(mktemp)"
+          trap 'rm -f "${response_file}"' EXIT
+
+          http_status="$(curl \
+            --silent \
+            --show-error \
+            --retry 3 \
+            --retry-all-errors \
+            --connect-timeout 15 \
+            --max-time 60 \
+            --request POST \
+            --header "Authorization: Bearer ${UPTIMEROBOT_API_KEY}" \
+            --header "Content-Type: application/json" \
+            --data '{}' \
+            --output "${response_file}" \
+            --write-out '%{http_code}' \
+            "https://api.uptimerobot.com/v3/monitors/${UPTIMEROBOT_MONITOR_ID}/${monitor_action}")"
+
+          if [[ ! "${http_status}" =~ ^2[0-9][0-9]$ ]]; then
+            echo "::error::UptimeRobot ${monitor_action} request failed with HTTP ${http_status}."
+            exit 1
+          fi
+
+          echo "UptimeRobot monitor ${monitor_action} request completed (HTTP ${http_status})."
+          {
+            echo "### UptimeRobot schedule result"
+            echo "- Action: ${monitor_action}"
+            echo "- HTTP status: ${http_status}"
+            echo "- UTC time: $(date -u '+%Y-%m-%d %H:%M:%S')"
+            echo "- KST time: $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M:%S')"
+          } >> "${GITHUB_STEP_SUMMARY}"

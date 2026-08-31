@@ -35,6 +35,11 @@ const __dirname = path.dirname(__filename);
 app.use(cors());
 app.use(express.json());
 
+// UptimeRobot이 애플리케이션 상태를 가볍게 확인하는 공개 엔드포인트
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 // public 폴더 정적 제공 (admin.html, overlay.html)
 app.use(express.static(path.join(__dirname, "public")));
 
